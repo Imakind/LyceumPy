@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aqbobek_pass123}
       POSTGRES_DB: ${POSTGRES_DB:-aqbobek_lyceum}
     ports:
-      - "5432:5432"
+      - "5433:5432" # Хост порт 5433 -> Контейнер порт 5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,7 +24,7 @@ services:
     container_name: aqbobek_api
     restart: always
     ports:
-      - "8000:8000"
+      - "8080:8000" # Хост порт 8080 -> Контейнер порт 8000
     environment:
       DATABASE_URL: postgresql://aqbobek_admin:aqbobek_pass123@db:5432/aqbobek_lyceum
     depends_on:
@@ -38,9 +38,10 @@ services:
     container_name: aqbobek_ui
     restart: always
     ports:
-      - "3000:3000"
+      - "3030:3000" # Хост порт 3030 -> Контейнер порт 3000
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      # Важно: фронтенд в браузере должен видеть бэкенд на хост-порту 8080
+      NEXT_PUBLIC_API_URL: http://localhost:8080
     depends_on:
       - backend
 
