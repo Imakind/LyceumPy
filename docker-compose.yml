@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: aqbobek_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aqbobek_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aqbobek_pass123}
+      POSTGRES_DB: ${POSTGRES_DB:-aqbobek_lyceum}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aqbobek_admin -d aqbobek_lyceum"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: aqbobek_api
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://aqbobek_admin:aqbobek_pass123@db:5432/aqbobek_lyceum
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
