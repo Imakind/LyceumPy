@@ -2,10 +2,21 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 import random
 from datetime import datetime
+
+from database import init_db, get_db
 from ai_service import AIService
 from scheduler import SchedulerService
 
 app = FastAPI(title="Aqbobek Lyceum Portal API")
+
+# Автоматическое создание таблиц при запуске (в Docker)
+@app.on_event("startup")
+def on_startup():
+    init_db()
+
+@app.get("/")
+def read_root():
+    return {"status": "success", "message": "Aqbobek Lyceum API is running."}
 
 # --- Mock API BilimClass Emulator ---
 @app.get("/api/mock/bilimclass/grades/{student_id}")
@@ -23,7 +34,7 @@ async def get_mock_grades(student_id: int):
 
 # --- Kiosk Mode ---
 @app.get("/api/kiosk/wall-newspaper")
-async def get_wall_newspaper():
+async def get_wall_newspaper(db: Session = Depends(get_db)):
     return {
         "top_students": [
             {"name": "Алихан Е.", "points": "98.5"},
@@ -38,8 +49,7 @@ async def get_wall_newspaper():
 
 # --- Analytics & AI ---
 @app.get("/api/analytics/predict/{student_id}")
-async def get_student_prediction(student_id: int):
-    # В реальном приложении здесь будет запрос к БД и вызов ai_service
+async def get_student_prediction(student_id: int, db: Session = Depends(get_db)):
     return {
         "student_id": student_id,
         "fail_probability": 0.15,
@@ -48,10 +58,9 @@ async def get_student_prediction(student_id: int):
 
 # --- Admin Actions ---
 @app.post("/api/admin/teacher-sick/{teacher_id}")
-async def trigger_sick_leave(teacher_id: int):
-    # Вызов SchedulerService.handle_teacher_sick
-    notifications = SchedulerService.handle_teacher_sick(None, teacher_id)
-    return {"status": "triggered", "message": "Расписание обновлено, уведомления разосланы.", "notifications": notifications}
+async def trigger_sick_leave(teacher_id: int, db: Session = Depends(get_db)):
+    notifications = SchedulerService.handle_teacher_sick(db, teacher_id)
+    return {"status": "triggered", "message": "Расписание обновлено.", "notifications": notifications}
 
 if __name__ == "__main__":
     import uvicorn

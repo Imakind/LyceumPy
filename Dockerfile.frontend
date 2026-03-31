@@ -1,0 +1,11 @@
+FROM node:18-slim
+
+WORKDIR /app
+
+COPY package.json ./
+RUN npm install
+
+COPY . .
+
+# В режиме разработки используем dev, для продакшена нужно будет build & start
+CMD ["npm", "run", "dev"]
