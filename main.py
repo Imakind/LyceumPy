@@ -1,13 +1,23 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from database import init_db, get_db
 from ai_service import AIService
 from scheduler import SchedulerService
 
 app = FastAPI(title="Aqbobek Lyceum Portal API")
+
+# Настройка CORS для запросов с Next.js
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:3030"], # Порты для dev и docker
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Автоматическое создание таблиц при запуске (в Docker)
 @app.on_event("startup")
@@ -21,16 +31,25 @@ def read_root():
 # --- Mock API BilimClass Emulator ---
 @app.get("/api/mock/bilimclass/grades/{student_id}")
 async def get_mock_grades(student_id: int):
-    subjects = ["Math", "Physics", "History", "CS"]
-    return [
-        {
+    subjects = ["Математика", "Физика", "История", "Информатика", "Английский"]
+    types = ["СОР", "СОЧ", "Текущая", "ФО"]
+    now = datetime.now()
+    
+    # Генерируем случайные оценки за последние 7 дней
+    grades = []
+    for i in range(5):
+        days_ago = random.randint(0, 7)
+        grades.append({
             "id": i,
             "subject": random.choice(subjects),
-            "score": random.randint(30, 100),
-            "type": random.choice(["SOR", "SOCH", "Current"]),
-            "date": datetime.now()
-        } for i in range(5)
-    ]
+            "score": random.randint(40, 100),
+            "type": random.choice(types),
+            "date": (now - timedelta(days=days_ago)).strftime("%Y-%m-%d")
+        })
+    
+    # Сортируем по дате убывания
+    grades.sort(key=lambda x: x["date"], reverse=True)
+    return grades
 
 # --- Kiosk Mode ---
 @app.get("/api/kiosk/wall-newspaper")
